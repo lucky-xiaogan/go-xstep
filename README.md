@@ -1,2 +1,2 @@
 # go-xstep
-study
+main.go 入口
