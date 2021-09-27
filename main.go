@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"go-xstep/internal/routers"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 func main() {
 	//路由
+	gin.SetMode(gin.DebugMode)
 	r := routers.SetupRouter()
 	s := http.Server{
 		Addr: ":8000", //端口号
