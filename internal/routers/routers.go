@@ -2,6 +2,7 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
+	s "go-xstep/pkg/x/sort"
 	"net/http"
 	"strings"
 )
@@ -19,6 +20,14 @@ func SetupRouter() *gin.Engine {
 		//截取/
 		action = strings.Trim(action, "/")
 		c.String(http.StatusOK, name+" is "+action)
+	})
+
+	r.POST("/bubblesort", func(c *gin.Context) {
+		var m map[string]interface{}
+		c.ShouldBindJSON(&m)
+		s.BubbleSort(m["n"].([]int))
+		//fmt.Println(m["n"])
+		c.String(http.StatusOK, "%v", m["n"])
 	})
 	//默认为监听8080端口
 	//r.Run(":8000")
