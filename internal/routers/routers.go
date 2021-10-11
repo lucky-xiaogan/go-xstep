@@ -2,7 +2,8 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
-	s "go-xstep/pkg/x/sort"
+	"go-xstep/internal/middleware"
+	"go-xstep/pkg/x/xsort"
 	"net/http"
 	"strings"
 )
@@ -12,6 +13,8 @@ func SetupRouter() *gin.Engine {
 	//gin.default 默认加载日志中间件
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	//自定义中间件
+	r.Use(middleware.CostTime())
 
 	//路由
 	r.GET("/user/:name/*action", func(c *gin.Context) {
@@ -23,11 +26,11 @@ func SetupRouter() *gin.Engine {
 	})
 
 	r.POST("/bubblesort", func(c *gin.Context) {
-		var m map[string]interface{}
+		var m []int
 		c.ShouldBindJSON(&m)
-		s.BubbleSort(m["n"].([]int))
+		xsort.SelectedSort(m)
 		//fmt.Println(m["n"])
-		c.String(http.StatusOK, "%v", m["n"])
+		c.String(http.StatusOK, "%v", m)
 	})
 	//默认为监听8080端口
 	//r.Run(":8000")

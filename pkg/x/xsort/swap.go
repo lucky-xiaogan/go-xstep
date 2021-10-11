@@ -1,4 +1,4 @@
-package sort
+package xsort
 
 //swap 交换函数
 func swap(arr []int, i, j int) {

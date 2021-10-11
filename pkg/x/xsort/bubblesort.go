@@ -1,6 +1,7 @@
-package sort
+package xsort
 
 //BubbleSort 冒泡排序
+//时间复杂度O(n)^2
 func BubbleSort(data []int) []int {
 	n := len(data)
 	//外层循环
