@@ -22,7 +22,7 @@ func (h exampleConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSessi
 	return nil
 }
 
-var consumer_group = "1"
+var consumerGroup = "1"
 
 func main() {
 	kfversion, err := sarama.ParseKafkaVersion("0.11.0.2") // kafkaVersion is the version of kafka server like 0.11.0.2
@@ -42,7 +42,7 @@ func main() {
 	defer func() { _ = client.Close() }()
 
 	// Start a new consumer group
-	group, err := sarama.NewConsumerGroupFromClient(consumer_group, client)
+	group, err := sarama.NewConsumerGroupFromClient(consumerGroup, client)
 	if err != nil {
 		log.Println(err)
 	}
