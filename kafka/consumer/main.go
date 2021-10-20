@@ -1,14 +1,75 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/Shopify/sarama"
 	"log"
-	"time"
+
+	//"log"
+	//"time"
 )
 
+type exampleConsumerGroupHandler struct{}
+
+func (exampleConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (exampleConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+func (h exampleConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for msg := range claim.Messages() {
+		fmt.Printf("Message topic:%q partition:%d offset:%d\n", msg.Topic, msg.Partition, msg.Offset)
+		sess.MarkMessage(msg, "")
+	}
+	return nil
+}
+
+var consumer_group = "1"
+
 func main() {
-	consumer, err := sarama.NewConsumer([]string{"10.12.237.171:9092","10.12.237.171:9093","10.12.237.171:9094"}, nil)
+	kfversion, err := sarama.ParseKafkaVersion("0.11.0.2") // kafkaVersion is the version of kafka server like 0.11.0.2
+	if err != nil {
+		log.Println(err)
+	}
+
+	config := sarama.NewConfig()
+	config.Version = kfversion
+	config.Consumer.Return.Errors = true
+
+	// Start with a client
+	client, err := sarama.NewClient([]string{"10.12.237.171:9092"}, config)
+	if err != nil {
+		log.Println(err)
+	}
+	defer func() { _ = client.Close() }()
+
+	// Start a new consumer group
+	group, err := sarama.NewConsumerGroupFromClient(consumer_group, client)
+	if err != nil {
+		log.Println(err)
+	}
+	defer func() { _ = group.Close() }()
+
+	// Track errors
+	go func() {
+		for err := range group.Errors() {
+			fmt.Println("ERROR", err)
+		}
+	}()
+
+	// Iterate over consumer sessions.
+	ctx := context.Background()
+	for {
+		topics := []string{"test_log"}
+		handler := exampleConsumerGroupHandler{}
+
+		// `Consume` should be called inside an infinite loop, when a
+		// server-side rebalance happens, the consumer session will need to be
+		// recreated to get the new claims
+		err := group.Consume(ctx, topics, handler)
+		if err != nil {
+			panic(err)
+		}
+	}
+/*	consumer, err := sarama.NewConsumer([]string{"10.12.237.171:9092","10.12.237.171:9093","10.12.237.171:9094"}, nil)
 	if err != nil {
 		fmt.Printf("fail to start consumer, err:%v\n", err)
 		return
@@ -47,5 +108,5 @@ func main() {
 		//	}
 		//}(pc)
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(10 * time.Second)*/
 }
