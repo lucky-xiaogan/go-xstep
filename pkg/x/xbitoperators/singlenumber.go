@@ -1,4 +1,5 @@
 package xbitoperators
+
 /*
 SingleNumber 给定一个非空整数数组，除了某个元素只出现一次以外，其余每个元素均出现两次。找出那个只出现了一次的元素。
 
@@ -34,13 +35,30 @@ SingleNumber 给定一个非空整数数组，除了某个元素只出现一次�
 ~ 1 0 0 1 1
 -----------------------------
   0 1 1 0 0
-
 */
 
 func SingleNumber(data []int) int {
 	res := 0
-	for _, v := range data{
+	for _, v := range data {
 		res ^= v
 	}
 	return res
+}
+
+func PrintOddTimesNum2(data []int) (int, int) {
+	eor, onlyOne := 0, 0
+	for _, v := range data {
+		eor ^= v
+	}
+
+	//eor = a ^ b
+	//eor != 0
+	//eor必然有一个位置为1
+	onlyOne = eor & (^eor + 1) //提取出最右的1
+	for _, v := range data {
+		if onlyOne&v == 0 {
+			onlyOne ^= v
+		}
+	}
+	return onlyOne, eor ^ onlyOne
 }
