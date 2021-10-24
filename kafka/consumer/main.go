@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"github.com/Shopify/sarama"
 	"log"
-
+	"time"
 	//"log"
 	//"time"
 )
@@ -16,7 +17,8 @@ func (exampleConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   
 func (exampleConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 func (h exampleConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		fmt.Printf("Message topic:%q partition:%d offset:%d\n", msg.Topic, msg.Partition, msg.Offset)
+		time.Sleep(1 * time.Second)
+		fmt.Printf("Message topic:%q partition:%d offset:%d value:%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Value)
 		sess.MarkMessage(msg, "")
 	}
 	return nil
@@ -25,6 +27,9 @@ func (h exampleConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSessi
 var consumerGroup = "1"
 
 func main() {
+	flag.StringVar(&consumerGroup, "c", "1", "test")
+	flag.Parse()
+	fmt.Printf("consumerGroup:%s\n", consumerGroup)
 	kfversion, err := sarama.ParseKafkaVersion("0.11.0.2") // kafkaVersion is the version of kafka server like 0.11.0.2
 	if err != nil {
 		log.Println(err)
@@ -33,9 +38,10 @@ func main() {
 	config := sarama.NewConfig()
 	config.Version = kfversion
 	config.Consumer.Return.Errors = true
+	config.Consumer.Offsets.AutoCommit.Enable = true
 
 	// Start with a client
-	client, err := sarama.NewClient([]string{"10.12.237.171:9092"}, config)
+	client, err := sarama.NewClient([]string{"192.168.3.104:9092"}, config)
 	if err != nil {
 		log.Println(err)
 	}
@@ -69,44 +75,44 @@ func main() {
 			panic(err)
 		}
 	}
-/*	consumer, err := sarama.NewConsumer([]string{"10.12.237.171:9092","10.12.237.171:9093","10.12.237.171:9094"}, nil)
-	if err != nil {
-		fmt.Printf("fail to start consumer, err:%v\n", err)
-		return
-	}
-	partitionList, err := consumer.Partitions("test_log") // 根据topic取到所有的分区
-	if err != nil {
-		fmt.Printf("fail to get list of partition:err%v\n", err)
-		return
-	}
-	fmt.Println(partitionList)
-
-	defer consumer.Close()
-	for partition := range partitionList { // 遍历所有的分区
-		fmt.Printf("partion:%d\n", partition)
-		// 针对每个分区创建一个对应的分区消费者
-		pc, err := consumer.ConsumePartition("test_log", int32(partition), sarama.OffsetNewest)
+	/*	consumer, err := sarama.NewConsumer([]string{"10.12.237.171:9092","10.12.237.171:9093","10.12.237.171:9094"}, nil)
 		if err != nil {
-			fmt.Printf("failed to start consumer for partition %d,err:%v\n", partition, err)
+			fmt.Printf("fail to start consumer, err:%v\n", err)
 			return
 		}
+		partitionList, err := consumer.Partitions("test_log") // 根据topic取到所有的分区
+		if err != nil {
+			fmt.Printf("fail to get list of partition:err%v\n", err)
+			return
+		}
+		fmt.Println(partitionList)
 
-		//同步消费信息
-		func(pc sarama.PartitionConsumer) {
-			defer pc.Close()
-
-			for message := range pc.Messages() {
-				log.Printf("[Consumer] partitionid: %d; offset:%d, value: %s\n", message.Partition, message.Offset, string(message.Value))
+		defer consumer.Close()
+		for partition := range partitionList { // 遍历所有的分区
+			fmt.Printf("partion:%d\n", partition)
+			// 针对每个分区创建一个对应的分区消费者
+			pc, err := consumer.ConsumePartition("test_log", int32(partition), sarama.OffsetNewest)
+			if err != nil {
+				fmt.Printf("failed to start consumer for partition %d,err:%v\n", partition, err)
+				return
 			}
-		}(pc)
 
-		//defer pc.AsyncClose()
-		//// 异步从每个分区消费信息
-		//go func(pc sarama.PartitionConsumer) {
-		//	for msg := range pc.Messages() {
-		//		fmt.Printf("Partition:%d Offset:%d Key:%v Value:%s", msg.Partition, msg.Offset, msg.Key, msg.Value)
-		//	}
-		//}(pc)
-	}
-	time.Sleep(10 * time.Second)*/
+			//同步消费信息
+			func(pc sarama.PartitionConsumer) {
+				defer pc.Close()
+
+				for message := range pc.Messages() {
+					log.Printf("[Consumer] partitionid: %d; offset:%d, value: %s\n", message.Partition, message.Offset, string(message.Value))
+				}
+			}(pc)
+
+			//defer pc.AsyncClose()
+			//// 异步从每个分区消费信息
+			//go func(pc sarama.PartitionConsumer) {
+			//	for msg := range pc.Messages() {
+			//		fmt.Printf("Partition:%d Offset:%d Key:%v Value:%s", msg.Partition, msg.Offset, msg.Key, msg.Value)
+			//	}
+			//}(pc)
+		}
+		time.Sleep(10 * time.Second)*/
 }
