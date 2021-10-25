@@ -1,38 +1,47 @@
 package config
 
 import (
-	"fmt"
-	"gopkg.in/yaml.v2"
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 )
 
-//解析yml文件
-type BaseInfo struct {
-	Port   string      `yaml:"port"`
-	Ip     string      `yaml:"ip"`
-	Host   string      `yaml:"host"`
-	Spring RedisEntity `yaml:"spring"`
+type Env string
+
+type Config struct {
+	App   Application `yaml:"app"`
+	Port  Port        `yaml:"port"`
+	Redis RedisConfig `yaml:"redis"`
 }
 
-type RedisEntity struct {
-	Redis RedisData `yaml:"redis"`
+type Application struct {
+	Name string `yaml:"name"`
 }
 
-type RedisData struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	DataBase string `yaml:"dataBase"`
-	Timeout  string `yaml:"timeout"`
+type Port struct {
+	HTTPAddr  string `yaml:"tcpAddr"`
+	AdminAddr string `yaml:"adminAddr"`
 }
 
-func (c *BaseInfo) GetConf() *BaseInfo {
-	yamlFile, err := ioutil.ReadFile(".config.yml")
+type RedisConfig struct {
+	Addr         string `yaml:"host"`
+	Password     string `yaml:"password"`
+	DB           int    `yaml:"db"`
+	MaxRetries   int    `yaml:"maxRetries"`
+	PoolSize     int    `yaml:"poolSize"`
+	MinIdleConns int    `yaml:"minIdleConns"`
+}
+
+func New(env Env) (c *Config) {
+	c = &Config{}
+	content, err := ioutil.ReadFile(string(env))
 	if err != nil {
-		fmt.Println(err.Error())
+		panic(err)
 	}
-	err = yaml.Unmarshal(yamlFile, c)
-	if err != nil {
-		fmt.Println(err.Error())
+
+	if err := yaml.Unmarshal(content, c); err != nil {
+		//打印堆栈信息
+		panic(errors.WithStack(err))
 	}
-	return c
+	return
 }
