@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	config2 "go-xstep/config"
 	"go-xstep/internal/routers"
 	"net/http"
 	"os"
@@ -13,7 +14,9 @@ import (
 )
 
 func main() {
-
+	config := config2.BaseInfo{}
+	conf := config.GetConf()
+	fmt.Println(conf.Host)
 	done := make(chan error, 1)
 	stop := make(chan struct{})
 	go func() {
