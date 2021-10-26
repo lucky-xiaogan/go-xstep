@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/pkg/errors"
+	"go-xstep/pkg/cache/redis"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 )
@@ -9,9 +10,9 @@ import (
 type Env string
 
 type Config struct {
-	App   Application `yaml:"app"`
-	Port  Port        `yaml:"port"`
-	Redis RedisConfig `yaml:"redis"`
+	App   Application  `yaml:"app"`
+	Port  Port         `yaml:"port"`
+	Redis redis.Config `yaml:"redis"`
 }
 
 type Application struct {
@@ -21,15 +22,6 @@ type Application struct {
 type Port struct {
 	HTTPAddr  string `yaml:"tcpAddr"`
 	AdminAddr string `yaml:"adminAddr"`
-}
-
-type RedisConfig struct {
-	Addr         string `yaml:"host"`
-	Password     string `yaml:"password"`
-	DB           int    `yaml:"db"`
-	MaxRetries   int    `yaml:"maxRetries"`
-	PoolSize     int    `yaml:"poolSize"`
-	MinIdleConns int    `yaml:"minIdleConns"`
 }
 
 func New(env Env) (c *Config) {
