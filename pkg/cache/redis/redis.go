@@ -70,10 +70,11 @@ var (
 
 func NewRedis(c *Config) error {
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:16379",
-		Password: "",  // no password set
-		DB:       0,   // use default DB
-		PoolSize: 100, // 连接池大小
+		Addr:       c.Addr,
+		Password:   c.Password, // no password set
+		DB:         c.DB,       // use default DB
+		MaxRetries: c.MaxRetries,
+		PoolSize:   c.PoolSize, // 连接池大小
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
