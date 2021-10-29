@@ -29,8 +29,7 @@ func main() {
 	conf = config.New(env)
 
 	//redis init
-	redisConf := redis.NewConfig(conf.Redis.Addr, conf.Redis.Password)
-	err := redis.NewRedis(redisConf)
+	err := redis.NewRedis(conf.Redis.Addr, conf.Redis.Password)
 	if err != nil {
 		panic(errors.WithStack(err))
 	}
@@ -91,12 +90,12 @@ func AdminServer(stop <-chan struct{}) error {
 	//gin.SetMode(gin.DebugMode)
 	//r := routers.SetupRouter()
 	s := http.Server{
-		Addr:           conf.Port.AdminAddr, //端口号
+		Addr: conf.Port.AdminAddr, //端口号
 		//Handler:        r,                   //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
-		ReadTimeout:    30 * time.Second,    //请求超时时间
-		WriteTimeout:   30 * time.Second,    //响应超时时间
-		IdleTimeout:    30 * time.Second,    //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
-		MaxHeaderBytes: 1 << 20,             //header头最大字节数
+		ReadTimeout:    30 * time.Second, //请求超时时间
+		WriteTimeout:   30 * time.Second, //响应超时时间
+		IdleTimeout:    30 * time.Second, //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
+		MaxHeaderBytes: 1 << 20,          //header头最大字节数
 	}
 	go func() {
 		<-stop

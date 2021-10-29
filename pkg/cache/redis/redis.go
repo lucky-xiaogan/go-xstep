@@ -17,22 +17,10 @@ type Config struct {
 
 type Option func(*Config)
 
-func NewConfig(addr, password string, options ...func(*Config)) *Config {
-	c := Config{
-		Addr:         addr,
-		Password:     password,
-		DB:           0,
-		MaxRetries:   3,
-		PoolSize:     10,
-		MinIdleConns: 10,
-	}
+var (
+	RedisDB *redis.Client
+)
 
-	for _, option := range options {
-		option(&c)
-	}
-
-	return &c
-}
 
 func DialDatabase(db int) Option {
 	return func(config *Config) {
@@ -64,11 +52,20 @@ func DailMinIdleConns(minIdleConns int) Option {
 	}
 }
 
-var (
-	RedisDB *redis.Client
-)
+func NewRedis(addr, password string, options ...func(*Config)) error {
+	c := Config{
+		Addr:         addr,
+		Password:     password,
+		DB:           0,
+		MaxRetries:   3,
+		PoolSize:     10,
+		MinIdleConns: 10,
+	}
 
-func NewRedis(c *Config) error {
+	for _, option := range options {
+		option(&c)
+	}
+
 	RedisDB = redis.NewClient(&redis.Options{
 		Addr:       c.Addr,
 		Password:   c.Password, // no password set
@@ -83,3 +80,5 @@ func NewRedis(c *Config) error {
 	_, err := RedisDB.Ping(ctx).Result()
 	return err
 }
+
+
