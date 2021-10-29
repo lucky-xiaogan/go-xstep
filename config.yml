@@ -2,7 +2,7 @@ app:
   name: "victor"
 port:
   tcpAddr: ":8080"
-  adminAddr: "8081"
+  adminAddr: ":8081"
 redis:
   addr: "127.0.0.1:6379"
   password: ""

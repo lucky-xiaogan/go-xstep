@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"go-xstep/config"
 	"go-xstep/internal/routers"
+	"go-xstep/pkg/cache/redis"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,6 +27,13 @@ func main() {
 	flag.Parse()
 	env := config.Env(envPath)
 	conf = config.New(env)
+
+	//redis init
+	redisConf := redis.NewConfig(conf.Redis.Addr, conf.Redis.Password)
+	err := redis.NewRedis(redisConf)
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
 
 	done := make(chan error, 2)
 	stop := make(chan struct{})
@@ -79,11 +88,11 @@ func httpServer(stop <-chan struct{}) error {
 
 func AdminServer(stop <-chan struct{}) error {
 	//路由
-	gin.SetMode(gin.DebugMode)
-	r := routers.SetupRouter()
+	//gin.SetMode(gin.DebugMode)
+	//r := routers.SetupRouter()
 	s := http.Server{
 		Addr:           conf.Port.AdminAddr, //端口号
-		Handler:        r,                   //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
+		//Handler:        r,                   //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
 		ReadTimeout:    30 * time.Second,    //请求超时时间
 		WriteTimeout:   30 * time.Second,    //响应超时时间
 		IdleTimeout:    30 * time.Second,    //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
