@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
+	"github.com/go-redis/redis/v8"
 	"go-xstep/config"
 	"go-xstep/internal/routers"
-	"go-xstep/pkg/cache/redis"
+	"go-xstep/pkg/cache/xredis"
+	"go-xstep/pkg/logger"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,8 +17,12 @@ import (
 	"time"
 )
 
-var envPath string
-var conf *config.Config
+var (
+	envPath string
+	conf    *config.Config
+	rdb     *redis.Client
+	zlogger  *zap.Logger
+)
 
 func init() {
 	flag.StringVar(&envPath, "env", "./config.yml", "")
@@ -25,15 +30,25 @@ func init() {
 
 func main() {
 	flag.Parse()
+	//config
 	env := config.Env(envPath)
 	conf = config.New(env)
+	//xredis init
+	rdb = xredis.NewRedis(conf.Redis.Addr, conf.Redis.Password)
 
-	//redis init
-	err := redis.NewRedis(conf.Redis.Addr, conf.Redis.Password)
+	//初始化 logger
+	var err error
+	zlogger, err = logger.NewJSONLogger(
+		logger.WithDisableConsole(),
+		//logger.WithField("domain", fmt.Sprintf("%s[%s]", configs.ProjectName, env.Active().Value())),
+		logger.WithTimeLayout("2006-01-02 15:04:05"),
+		logger.WithFileP(conf.Logger.File),
+	)
 	if err != nil {
-		panic(errors.WithStack(err))
+		panic(err)
 	}
 
+	//server
 	done := make(chan error, 2)
 	stop := make(chan struct{})
 	go func() {
@@ -49,14 +64,19 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	var stoped bool
+
+	go func() {
+		<-quit
+		if !stoped {
+			stoped = true
+			close(stop)
+		}
+	}()
+
 	for i := 0; i < cap(done); i++ {
-		select {
-		case <-quit:
-			fmt.Println("signal notify shutdown")
-		case err := <-done:
-			if err != nil {
-				fmt.Printf("s.ListenAndServe err: %v", err)
-			}
+		err := <-done
+		if err != nil {
+			fmt.Printf("s.ListenAndServe err: %v", err)
 		}
 
 		if !stoped {
@@ -67,9 +87,8 @@ func main() {
 }
 
 func httpServer(stop <-chan struct{}) error {
-	//路由
-	gin.SetMode(gin.DebugMode)
-	r := routers.SetupRouter()
+	e := routers.NewEntry(conf, rdb, zlogger)
+	r := e.SetupRouter()
 	s := http.Server{
 		Addr:           conf.Port.HTTPAddr, //端口号
 		Handler:        r,                  //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
@@ -87,8 +106,8 @@ func httpServer(stop <-chan struct{}) error {
 
 func AdminServer(stop <-chan struct{}) error {
 	//路由
-	//gin.SetMode(gin.DebugMode)
-	//r := routers.SetupRouter()
+	//e := routers.NewEntry(conf, rdb, zLog)
+	//r := e.SetupRouter()
 	s := http.Server{
 		Addr: conf.Port.AdminAddr, //端口号
 		//Handler:        r,                   //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)

@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/pkg/errors"
-	"go-xstep/pkg/cache/redis"
+	"go-xstep/pkg/cache/xredis"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 )
@@ -10,9 +10,10 @@ import (
 type Env string
 
 type Config struct {
-	App   Application  `yaml:"app"`
-	Port  Port         `yaml:"port"`
-	Redis redis.Config `yaml:"redis"`
+	App    Application   `yaml:"app"`
+	Port   Port          `yaml:"port"`
+	Redis  xredis.Config `yaml:"redis"`
+	Logger Logger        `yaml:"logger"`
 }
 
 type Application struct {
@@ -22,6 +23,10 @@ type Application struct {
 type Port struct {
 	HTTPAddr  string `yaml:"tcpAddr"`
 	AdminAddr string `yaml:"adminAddr"`
+}
+
+type Logger struct {
+	File string `yaml:"file"`
 }
 
 func New(env Env) (c *Config) {

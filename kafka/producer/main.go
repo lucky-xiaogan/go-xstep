@@ -23,7 +23,7 @@ func main() {
 
 	for i := 0; i < 100; i++ {
 		// 构造一个消息
-		value := fmt.Sprintf("this is test log:%d", i)
+		value := fmt.Sprintf("this is test logger:%d", i)
 		msg := &sarama.ProducerMessage{}
 		msg.Topic = "test_log"
 		msg.Value = sarama.StringEncoder(value)

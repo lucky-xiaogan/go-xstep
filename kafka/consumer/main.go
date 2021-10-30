@@ -7,7 +7,7 @@ import (
 	"github.com/Shopify/sarama"
 	"log"
 	"time"
-	//"log"
+	//"logger"
 	//"time"
 )
 
@@ -30,7 +30,7 @@ func main() {
 	flag.StringVar(&consumerGroup, "c", "1", "test")
 	flag.Parse()
 	fmt.Printf("consumerGroup:%s\n", consumerGroup)
-	kfversion, err := sarama.ParseKafkaVersion("0.11.0.2") // kafkaVersion is the version of kafka server like 0.11.0.2
+	kfversion, err := sarama.ParseKafkaVersion("0.11.0.2") // kafkaVersion is the version of kafka app like 0.11.0.2
 	if err != nil {
 		log.Println(err)
 	}
@@ -68,7 +68,7 @@ func main() {
 		handler := exampleConsumerGroupHandler{}
 
 		// `Consume` should be called inside an infinite loop, when a
-		// server-side rebalance happens, the consumer session will need to be
+		// app-side rebalance happens, the consumer session will need to be
 		// recreated to get the new claims
 		err := group.Consume(ctx, topics, handler)
 		if err != nil {
@@ -102,7 +102,7 @@ func main() {
 				defer pc.Close()
 
 				for message := range pc.Messages() {
-					log.Printf("[Consumer] partitionid: %d; offset:%d, value: %s\n", message.Partition, message.Offset, string(message.Value))
+					logger.Printf("[Consumer] partitionid: %d; offset:%d, value: %s\n", message.Partition, message.Offset, string(message.Value))
 				}
 			}(pc)
 

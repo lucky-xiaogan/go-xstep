@@ -1,22 +1,38 @@
 package routers
 
 import (
-	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"go-xstep/config"
 	"go-xstep/internal/middleware"
-	"go-xstep/pkg/cache/redis"
 	"go-xstep/pkg/x/xsort"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 )
 
-func SetupRouter() *gin.Engine {
+type Enter struct {
+	conf        *config.Config
+	redisClient *redis.Client
+	zlog        *zap.Logger
+}
+
+func NewEntry(conf *config.Config, rdb *redis.Client, zlog *zap.Logger) *Enter {
+	return &Enter{
+		conf:        conf,
+		redisClient: rdb,
+		zlog:        zlog,
+	}
+}
+
+func (e *Enter) SetupRouter() *gin.Engine {
+	gin.SetMode("release")
 	r := gin.New()
-	//gin.default 默认加载日志中间件
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	////gin.default 默认加载日志中间件
+	//r.Use(gin.Logger())
+	//r.Use(gin.Recovery())
+	r.Use(middleware.Logger(e.zlog))
+	r.Use(middleware.Recovery(e.zlog, true))
 	//自定义中间件
 	r.Use(middleware.CostTime())
 
@@ -29,36 +45,17 @@ func SetupRouter() *gin.Engine {
 		c.String(http.StatusOK, name+" is "+action)
 	})
 
+	//路由
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "hellWorld")
+	})
+
 	r.POST("/bubblesort", func(c *gin.Context) {
 		var m []int
 		c.ShouldBindJSON(&m)
 		xsort.SelectedSort(m)
 		//fmt.Println(m["n"])
 		c.String(http.StatusOK, "%v", m)
-	})
-
-	r.GET("/redis", func(c *gin.Context) {
-
-		val, err := redis.RedisDB.Get(context.Background(), "test").Result()
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(val)
-
-
-	})
-
-	r.GET("/", func(c *gin.Context) {
-
-		test, err := redis.RedisDB.Get(context.Background(), "test").Result()
-		if err != nil {
-			fmt.Println("hello")
-			log.Fatal(err)
-		}
-		fmt.Println(test)
-		val := redis.RedisDB.Set(context.Background(), "test", 1, 60)
-		fmt.Println(val)
-
 	})
 
 	//默认为监听8080端口

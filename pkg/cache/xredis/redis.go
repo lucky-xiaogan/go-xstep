@@ -1,9 +1,7 @@
-package redis
+package xredis
 
 import (
-	"context"
 	"github.com/go-redis/redis/v8"
-	"time"
 )
 
 type Config struct {
@@ -16,10 +14,6 @@ type Config struct {
 }
 
 type Option func(*Config)
-
-var (
-	RedisDB *redis.Client
-)
 
 
 func DialDatabase(db int) Option {
@@ -52,7 +46,7 @@ func DailMinIdleConns(minIdleConns int) Option {
 	}
 }
 
-func NewRedis(addr, password string, options ...func(*Config)) error {
+func NewRedis(addr, password string, options ...func(*Config)) *redis.Client {
 	c := Config{
 		Addr:         addr,
 		Password:     password,
@@ -66,7 +60,7 @@ func NewRedis(addr, password string, options ...func(*Config)) error {
 		option(&c)
 	}
 
-	RedisDB = redis.NewClient(&redis.Options{
+	rdb := redis.NewClient(&redis.Options{
 		Addr:       c.Addr,
 		Password:   c.Password, // no password set
 		DB:         c.DB,       // use default DB
@@ -74,11 +68,11 @@ func NewRedis(addr, password string, options ...func(*Config)) error {
 		PoolSize:   c.PoolSize, // 连接池大小
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err := RedisDB.Ping(ctx).Result()
-	return err
+	//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	//defer cancel()
+	//
+	//_, err := RedisDB.Ping(ctx).Result()
+	return rdb
 }
 
 
