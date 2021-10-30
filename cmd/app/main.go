@@ -76,7 +76,7 @@ func main() {
 	for i := 0; i < cap(done); i++ {
 		err := <-done
 		if err != nil {
-			fmt.Printf("s.ListenAndServe err: %v", err)
+			fmt.Printf("s.ListenAndServe err: %v\n", err)
 		}
 
 		if !stoped {
