@@ -4,7 +4,7 @@ package xsearch
 func BinarySearch(nums []int, target int) int {
 	low, high := 0, len(nums)-1
 	for low <= high {
-		m := low + (high-low)>>1
+		m := low + ((high - low) >> 1)
 		if nums[m] == target {
 			return m
 		} else if nums[m] > target {

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// GinRecovery recover掉项目可能出现的panic
+// Recovery recover掉项目可能出现的panic
 func Recovery(logger *zap.Logger, stack bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
