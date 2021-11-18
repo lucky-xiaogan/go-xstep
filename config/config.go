@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/pkg/errors"
 	"go-xstep/pkg/cache/xredis"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
+
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 )
 
 type Env string

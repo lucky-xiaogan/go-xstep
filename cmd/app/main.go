@@ -4,24 +4,25 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"go-xstep/config"
 	"go-xstep/internal/routers"
 	"go-xstep/pkg/cache/xredis"
 	"go-xstep/pkg/logger"
-	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
 )
 
 var (
 	envPath string
 	conf    *config.Config
 	rdb     *redis.Client
-	zlogger  *zap.Logger
+	zlogger *zap.Logger
 )
 
 func init() {
@@ -51,6 +52,9 @@ func main() {
 	//server
 	done := make(chan error, 2)
 	stop := make(chan struct{})
+	// ctx, cannel := context.WithCancel(context.Background())
+	// defer cannel()
+
 	go func() {
 		done <- httpServer(stop)
 	}()
@@ -99,6 +103,14 @@ func httpServer(stop <-chan struct{}) error {
 	}
 	go func() {
 		<-stop
+		// Shutdown 接口，如果没有新的连接了就会释放，传入超时 context
+		// 调用这个接口会关闭服务，但是不会中断活动连接
+		// 首先会将端口监听移除
+		// 然后会关闭所有的空闲连接
+		// 然后等待活动的连接变为空闲后关闭
+		// 如果等待时间超过了传入的 context 的超时时间，就会强制退出
+		// 调用这个接口 server 监听端口会返回 ErrServerClosed 错误
+		// 注意，这个接口不会关闭和等待websocket这种被劫持的链接，如果做一些处理。可以使用 RegisterOnShutdown 注册一些清理的方法
 		s.Shutdown(context.Background())
 	}()
 	return s.ListenAndServe()

@@ -1,8 +1,10 @@
 app:
   name: "victor"
+  
 port:
   tcpAddr: ":8080"
   adminAddr: ":8081"
+
 redis:
   host: "127.0.0.1:6379"
   password: ""
@@ -10,5 +12,7 @@ redis:
   maxRetries: 2
   poolSize: 200
   minIdleConns: 10
+
 logger:
   file: "logs/test.log"
+
