@@ -20,7 +20,6 @@ import (
 
 var (
 	envPath string
-	conf    *config.Config
 	rdb     *redis.Client
 	zlogger *zap.Logger
 )
@@ -33,17 +32,21 @@ func main() {
 	flag.Parse()
 	//config
 	env := config.Env(envPath)
-	conf = config.New(env)
+	err := config.New(env)
+	// 配置文件未正确加载
+	if err != nil {
+		panic(err)
+	}
+
 	//xredis init
-	rdb = xredis.NewRedis(conf.Redis.Addr, conf.Redis.Password)
+	rdb = xredis.NewRedis(config.Conf.Redis.Addr, config.Conf.Redis.Password)
 
 	//初始化 logger
-	var err error
 	zlogger, err = logger.NewJSONLogger(
 		logger.WithDisableConsole(),
 		//logger.WithField("domain", fmt.Sprintf("%s[%s]", configs.ProjectName, env.Active().Value())),
 		logger.WithTimeLayout("2006-01-02 15:04:05"),
-		logger.WithFileP(conf.Logger.File),
+		logger.WithFileP(config.Conf.Logger.File),
 	)
 	if err != nil {
 		panic(err)
@@ -91,15 +94,15 @@ func main() {
 }
 
 func httpServer(stop <-chan struct{}) error {
-	e := routers.NewEntry(conf, rdb, zlogger)
+	e := routers.NewEntry(config.Conf, rdb, zlogger)
 	r := e.SetupRouter()
 	s := http.Server{
-		Addr:           conf.Port.HTTPAddr, //端口号
-		Handler:        r,                  //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
-		ReadTimeout:    30 * time.Second,   //请求超时时间
-		WriteTimeout:   30 * time.Second,   //响应超时时间
-		IdleTimeout:    30 * time.Second,   //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
-		MaxHeaderBytes: 1 << 20,            //header头最大字节数
+		Addr:           config.Conf.Port.HTTPAddr, //端口号
+		Handler:        r,                         //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
+		ReadTimeout:    30 * time.Second,          //请求超时时间
+		WriteTimeout:   30 * time.Second,          //响应超时时间
+		IdleTimeout:    30 * time.Second,          //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
+		MaxHeaderBytes: 1 << 20,                   //header头最大字节数
 	}
 	go func() {
 		<-stop
@@ -121,7 +124,7 @@ func AdminServer(stop <-chan struct{}) error {
 	//e := routers.NewEntry(conf, rdb, zLog)
 	//r := e.SetupRouter()
 	s := http.Server{
-		Addr: conf.Port.AdminAddr, //端口号
+		Addr: config.Conf.Port.AdminAddr, //端口号
 		//Handler:        r,                   //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
 		ReadTimeout:    30 * time.Second, //请求超时时间
 		WriteTimeout:   30 * time.Second, //响应超时时间

@@ -1,14 +1,15 @@
 package routers
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
 	"go-xstep/config"
 	"go-xstep/internal/middleware"
 	"go-xstep/pkg/x/xsort"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
 )
 
 type Enter struct {

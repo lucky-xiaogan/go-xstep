@@ -8,6 +8,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var Conf *Config
+
 type Env string
 
 type Config struct {
@@ -30,16 +32,17 @@ type Logger struct {
 	File string `yaml:"file"`
 }
 
-func New(env Env) (c *Config) {
-	c = &Config{}
+func New(env Env) error {
+	c := &Config{}
 	content, err := ioutil.ReadFile(string(env))
 	if err != nil {
-		panic(err)
+		return errors.WithStack(err)
 	}
 
 	if err := yaml.Unmarshal(content, c); err != nil {
 		//打印堆栈信息
-		panic(errors.WithStack(err))
+		return errors.WithStack(err)
 	}
-	return
+	Conf = c
+	return nil
 }
