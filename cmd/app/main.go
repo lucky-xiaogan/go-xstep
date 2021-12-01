@@ -82,13 +82,17 @@ func main() {
 
 	//TODO 信号处理
 	go func() {
+		test := make(chan struct{})
 		go func() {
-			//<-stop
-			time.Sleep(5 * time.Second)
-			quit <- syscall.SIGINT
-			fmt.Println("打印不了")
+			select {
+			case <-test:
+				fmt.Println("打印不了")
+			case <-stop:
+				quit <- syscall.SIGINT
+			}
 		}()
 		<-quit
+		close(test)
 		done <- errors.New("signal")
 	}()
 
