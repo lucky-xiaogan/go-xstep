@@ -4,10 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/pkg/errors"
 	"go-xstep/config"
 	"go-xstep/internal/routers"
 	"go-xstep/pkg/cache/xredis"
 	"go-xstep/pkg/logger"
+	"go-xstep/pkg/x/xreporter"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,9 +21,10 @@ import (
 )
 
 var (
-	envPath string
-	rdb     *redis.Client
-	zlogger *zap.Logger
+	envPath  string
+	rdb      *redis.Client
+	zlogger  *zap.Logger
+	reporter *xreporter.Reporter
 )
 
 func init() {
@@ -52,34 +55,44 @@ func main() {
 		panic(err)
 	}
 
-	//server
-	done := make(chan error, 2)
+	// 用于监听服务退出
+	done := make(chan error, 4)
+	// 用于控制服务退出，传入同一个 stop，做到只要有一个服务退出了那么另外一个服务也会随之退出
 	stop := make(chan struct{})
 	// ctx, cannel := context.WithCancel(context.Background())
 	// defer cannel()
 
 	go func() {
-		done <- httpServer(stop)
+		done <- AppServer(stop)
 	}()
 
 	go func() {
 		done <- AdminServer(stop)
 	}()
 
+	reporter = xreporter.NewReporter(3, 10)
+	go func() {
+		reporter.Run(stop)
+		done <- nil
+	}()
+
 	quit := make(chan os.Signal)
 	//设置信号，让程序优雅的退出
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	var stoped bool
-
+	//TODO 信号处理
 	go func() {
+		go func() {
+			//<-stop
+			time.Sleep(5 * time.Second)
+			quit <- syscall.SIGINT
+			fmt.Println("打印不了")
+		}()
 		<-quit
-		if !stoped {
-			stoped = true
-			close(stop)
-		}
+		done <- errors.New("signal")
 	}()
 
+	var stoped bool
 	for i := 0; i < cap(done); i++ {
 		err := <-done
 		if err != nil {
@@ -93,16 +106,29 @@ func main() {
 	}
 }
 
-func httpServer(stop <-chan struct{}) error {
-	e := routers.NewEntry(config.Conf, rdb, zlogger)
+//AppServer 应用
+func AppServer(stop <-chan struct{}) error {
+	e := routers.NewEntry(config.Conf, rdb, zlogger, reporter)
 	r := e.SetupRouter()
+	return server(r, config.Conf.Port.HTTPAddr, stop)
+}
+
+//AdminServer 管理后台
+func AdminServer(stop <-chan struct{}) error {
+	//路由
+	//e := routers.NewEntry(conf, rdb, zLog)
+	//r := e.SetupRouter()
+	return server(nil, config.Conf.Port.AdminAddr, stop)
+}
+
+func server(handler http.Handler, addr string, stop <-chan struct{}) error {
 	s := http.Server{
-		Addr:           config.Conf.Port.HTTPAddr, //端口号
-		Handler:        r,                         //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
-		ReadTimeout:    30 * time.Second,          //请求超时时间
-		WriteTimeout:   30 * time.Second,          //响应超时时间
-		IdleTimeout:    30 * time.Second,          //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
-		MaxHeaderBytes: 1 << 20,                   //header头最大字节数
+		Addr:           addr,             //端口号
+		Handler:        handler,          //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
+		ReadTimeout:    30 * time.Second, //请求超时时间
+		WriteTimeout:   30 * time.Second, //响应超时时间
+		IdleTimeout:    30 * time.Second, //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
+		MaxHeaderBytes: 1 << 20,          //header头最大字节数
 	}
 	go func() {
 		<-stop
@@ -114,25 +140,6 @@ func httpServer(stop <-chan struct{}) error {
 		// 如果等待时间超过了传入的 context 的超时时间，就会强制退出
 		// 调用这个接口 server 监听端口会返回 ErrServerClosed 错误
 		// 注意，这个接口不会关闭和等待websocket这种被劫持的链接，如果做一些处理。可以使用 RegisterOnShutdown 注册一些清理的方法
-		s.Shutdown(context.Background())
-	}()
-	return s.ListenAndServe()
-}
-
-func AdminServer(stop <-chan struct{}) error {
-	//路由
-	//e := routers.NewEntry(conf, rdb, zLog)
-	//r := e.SetupRouter()
-	s := http.Server{
-		Addr: config.Conf.Port.AdminAddr, //端口号
-		//Handler:        r,                   //实现接口handler方法  ServeHTTP(ResponseWriter, *Request)
-		ReadTimeout:    30 * time.Second, //请求超时时间
-		WriteTimeout:   30 * time.Second, //响应超时时间
-		IdleTimeout:    30 * time.Second, //IdleTimeout是启用keep-alives时等待下一个请求的最大时间。如果IdleTimeout为零，则使用ReadTimeout的值。如果两者都是零，则没有超时。
-		MaxHeaderBytes: 1 << 20,          //header头最大字节数
-	}
-	go func() {
-		<-stop
 		s.Shutdown(context.Background())
 	}()
 	return s.ListenAndServe()

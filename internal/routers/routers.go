@@ -3,8 +3,10 @@ package routers
 import (
 	"go-xstep/config"
 	"go-xstep/internal/middleware"
+	"go-xstep/pkg/x/xreporter"
 	"go-xstep/pkg/x/xsort"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -16,13 +18,15 @@ type Enter struct {
 	conf        *config.Config
 	redisClient *redis.Client
 	zlog        *zap.Logger
+	reporter    *xreporter.Reporter
 }
 
-func NewEntry(conf *config.Config, rdb *redis.Client, zlog *zap.Logger) *Enter {
+func NewEntry(conf *config.Config, rdb *redis.Client, zlog *zap.Logger, reporter *xreporter.Reporter) *Enter {
 	return &Enter{
 		conf:        conf,
 		redisClient: rdb,
 		zlog:        zlog,
+		reporter:    reporter,
 	}
 }
 
@@ -57,6 +61,13 @@ func (e *Enter) SetupRouter() *gin.Engine {
 		xsort.SelectedSort(m)
 		//fmt.Println(m["n"])
 		c.String(http.StatusOK, "%v", m)
+	})
+
+	r.GET("/reporter", func(c *gin.Context) {
+		for i := 0; i < 100; i++ {
+			e.reporter.Report(strconv.Itoa(i))
+		}
+		c.String(http.StatusOK, "end")
 	})
 
 	//默认为监听8080端口
