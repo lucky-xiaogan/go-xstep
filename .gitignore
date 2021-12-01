@@ -5,6 +5,7 @@ package-lock.json
 yarn.lock
 .vscode/
 .history/
+config.yml
 logs/
 target/
 pid
