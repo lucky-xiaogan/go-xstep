@@ -6,19 +6,20 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"log"
-	"time"
 	//"logger"
 	//"time"
 )
 
-type exampleConsumerGroupHandler struct{}
+type exampleConsumerGroupHandler struct {
+	x *XXData
+}
 
 func (exampleConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
 func (exampleConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 func (h exampleConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		time.Sleep(1 * time.Second)
-		fmt.Printf("Message topic:%q partition:%d offset:%d value:%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Value)
+		res := fmt.Sprintf("Message topic:%q partition:%d offset:%d value:%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Value)
+		h.x.SendData(res)
 		sess.MarkMessage(msg, "")
 	}
 	return nil
@@ -41,7 +42,7 @@ func main() {
 	config.Consumer.Offsets.AutoCommit.Enable = true
 
 	// Start with a client
-	client, err := sarama.NewClient([]string{"192.168.3.104:9092"}, config)
+	client, err := sarama.NewClient([]string{"noah-machine:9092"}, config)
 	if err != nil {
 		log.Println(err)
 	}
@@ -61,20 +62,54 @@ func main() {
 		}
 	}()
 
+	done := make(chan error, 2)
+	stop := make(chan struct{})
+
+	t := NewXXData(5, 5)
+	go func() {
+		t.Run(stop)
+		done <- nil
+	}()
+
 	// Iterate over consumer sessions.
 	ctx := context.Background()
-	for {
-		topics := []string{"test_log"}
-		handler := exampleConsumerGroupHandler{}
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				topics := []string{"test_log"}
+				handler := exampleConsumerGroupHandler{x: t}
 
-		// `Consume` should be called inside an infinite loop, when a
-		// app-side rebalance happens, the consumer session will need to be
-		// recreated to get the new claims
-		err := group.Consume(ctx, topics, handler)
+				// `Consume` should be called inside an infinite loop, when a
+				// app-side rebalance happens, the consumer session will need to be
+				// recreated to get the new claims
+				err := group.Consume(ctx, topics, handler)
+				if err != nil {
+					//panic(err)
+					done <- err
+				}
+			}
+		}
+	}()
+
+	fmt.Println("consumer end")
+	var stoped bool
+	for i := 0; i < cap(done); i++ {
+		err := <-done
 		if err != nil {
-			panic(err)
+			//记录错误信息
+			log.Println(err)
+		}
+		if !stoped {
+			stoped = true
+			close(stop)
 		}
 	}
+
+	fmt.Println("consumer end end")
+
 	/*	consumer, err := sarama.NewConsumer([]string{"10.12.237.171:9092","10.12.237.171:9093","10.12.237.171:9094"}, nil)
 		if err != nil {
 			fmt.Printf("fail to start consumer, err:%v\n", err)

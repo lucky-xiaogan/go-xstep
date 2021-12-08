@@ -14,7 +14,7 @@ func main() {
 
 
 	// 连接kafka
-	client, err := sarama.NewSyncProducer([]string{"192.168.3.104:9092", "192.168.3.104:9093", "192.168.3.104:9094"}, config)
+	client, err := sarama.NewSyncProducer([]string{"noah-machine:9092", "noah-machine:9093", "noah-machine:9094"}, config)
 	if err != nil {
 		fmt.Println("producer closed, err:", err)
 		return

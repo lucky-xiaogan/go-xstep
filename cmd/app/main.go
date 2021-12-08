@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
 	"go-xstep/config"
 	"go-xstep/internal/routers"
 	"go-xstep/pkg/cache/xredis"
 	"go-xstep/pkg/logger"
 	"go-xstep/pkg/x/xreporter"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -93,14 +94,14 @@ func main() {
 		}()
 		<-quit
 		close(test)
-		done <- errors.New("signal")
+		done <- errors.New("test")
 	}()
 
 	var stoped bool
 	for i := 0; i < cap(done); i++ {
 		err := <-done
 		if err != nil {
-			fmt.Printf("s.ListenAndServe err: %v\n", err)
+			fmt.Printf("s.ListenAndServe err: %+v\n", err)
 		}
 
 		if !stoped {
@@ -123,6 +124,11 @@ func AdminServer(stop <-chan struct{}) error {
 	//e := routers.NewEntry(conf, rdb, zLog)
 	//r := e.SetupRouter()
 	return server(nil, config.Conf.Port.AdminAddr, stop)
+	//go func() {
+	//	server(nil, config.Conf.Port.AdminAddr, stop)
+	//}()
+	//time.Sleep(5 * time.Second)
+	//return fmt.Errorf("mock admin exit")
 }
 
 func server(handler http.Handler, addr string, stop <-chan struct{}) error {
@@ -144,6 +150,7 @@ func server(handler http.Handler, addr string, stop <-chan struct{}) error {
 		// 如果等待时间超过了传入的 context 的超时时间，就会强制退出
 		// 调用这个接口 server 监听端口会返回 ErrServerClosed 错误
 		// 注意，这个接口不会关闭和等待websocket这种被劫持的链接，如果做一些处理。可以使用 RegisterOnShutdown 注册一些清理的方法
+		log.Printf("server will exiting, addr: %s", addr)
 		s.Shutdown(context.Background())
 	}()
 	return s.ListenAndServe()
